@@ -1,0 +1,181 @@
+openapi: 3.0.3
+info:
+  title: Fizz-buzz API
+  description: >
+    Generates customisable fizz-buzz sequences and reports the most frequently
+    requested one.
+  version: 1.0.0
+tags:
+  - name: fizzbuzz
+  - name: operations
+paths:
+  /fizzbuzz:
+    get:
+      tags: [fizzbuzz]
+      summary: Generate a fizz-buzz sequence
+      description: >
+        Returns the numbers from 1 to `limit` as strings, where multiples of
+        `int1` are replaced by `str1`, multiples of `int2` by `str2`, and
+        multiples of both by `str1` followed by `str2`. Every successful call
+        is counted in the statistics.
+      operationId: getFizzBuzz
+      parameters:
+        - name: int1
+          in: query
+          required: true
+          description: Numbers that are multiples of this value are replaced by `str1`.
+          schema:
+            type: integer
+            minimum: 1
+          example: 3
+        - name: int2
+          in: query
+          required: true
+          description: Numbers that are multiples of this value are replaced by `str2`.
+          schema:
+            type: integer
+            minimum: 1
+          example: 5
+        - name: limit
+          in: query
+          required: true
+          description: >
+            Last number of the sequence. The server also enforces a
+            configurable maximum (10000 by default).
+          schema:
+            type: integer
+            minimum: 1
+          example: 15
+        - name: str1
+          in: query
+          required: true
+          description: >
+            Replacement for the multiples of `int1`. The server enforces a
+            configurable maximum length (64 characters by default).
+          schema:
+            type: string
+            minLength: 1
+          example: fizz
+        - name: str2
+          in: query
+          required: true
+          description: >
+            Replacement for the multiples of `int2`. The server enforces a
+            configurable maximum length (64 characters by default).
+          schema:
+            type: string
+            minLength: 1
+          example: buzz
+      responses:
+        "200":
+          description: The generated sequence.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example: ["1", "2", "fizz", "4", "buzz", "fizz", "7", "8", "fizz", "buzz", "11", "fizz", "13", "14", "fizzbuzz"]
+        "400":
+          description: A parameter is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                code: invalid_parameter
+                message: int1 must be greater than or equal to 1
+  /stats:
+    get:
+      tags: [fizzbuzz]
+      summary: Get the most frequent fizz-buzz request
+      description: >
+        Returns the parameters of the request that was served the most often,
+        with its number of hits. When several requests are tied, one of them
+        is returned.
+      operationId: getStats
+      responses:
+        "200":
+          description: The most frequent request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stats"
+        "404":
+          description: No fizz-buzz request has been served yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                code: no_stats
+                message: no fizz-buzz request has been served yet
+        "503":
+          description: The statistics store is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                code: stats_unavailable
+                message: statistics are temporarily unavailable
+  /healthz:
+    get:
+      tags: [operations]
+      summary: Liveness probe
+      operationId: getHealth
+      responses:
+        "200":
+          description: The server is up.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+components:
+  schemas:
+    FizzBuzzRequest:
+      type: object
+      required: [int1, int2, limit, str1, str2]
+      properties:
+        int1:
+          type: integer
+          example: 3
+        int2:
+          type: integer
+          example: 5
+        limit:
+          type: integer
+          example: 100
+        str1:
+          type: string
+          example: fizz
+        str2:
+          type: string
+          example: buzz
+    Stats:
+      type: object
+      required: [request, hits]
+      properties:
+        request:
+          $ref: "#/components/schemas/FizzBuzzRequest"
+        hits:
+          type: integer
+          format: int64
+          description: Number of times the request was served.
+          example: 42
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Stable, machine-readable error code.
+          enum: [invalid_parameter, no_stats, stats_unavailable, internal_error]
+        message:
+          type: string
+          description: Human-readable description of the error.

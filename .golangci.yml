@@ -1,0 +1,22 @@
+version: "2"
+
+linters:
+  enable:
+    - bodyclose
+    - errorlint
+    - gocritic
+    - gosec
+    - misspell
+    - noctx
+    - revive
+    - unconvert
+    - unparam
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/20101997/fizz_buzz
